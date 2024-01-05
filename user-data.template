@@ -1,0 +1,40 @@
+#cloud-config
+autoinstall:
+  version: 1
+  storage:
+    layout:
+      name: lvm
+  locale: en_US.UTF-8
+  keyboard:
+    layout: us
+  identity:
+    hostname: KSHOSTNAME
+    password: $6$6NbWpnzt6ZByj4Ov$ghwr81Kzx1JcRzcRAXoz7ymiRo62Xgpbbwr/nnHLrkp3gYmyEILFfJZRpfZ/rA3bwGJu6bwsCbmpzfp9bZ1Jv0
+    username: linuxroot
+  network:
+    network:
+      version: 2
+      ethernets:
+        eno8303:
+          dhcp4: no
+          addresses:
+          - KSIPADDRESS
+          nameservers:
+            addresses: [KSNAMESERVER]
+          routes:
+          - to: default
+            via: KSGATEWAY
+  ssh:
+    allow-pw: true
+    install-server: true
+  apt:
+    preserve_sources_list: false
+    mirror-selection:
+      primary:
+      - country-mirror
+      - arches: [i386, amd64]
+        uri: "http://archive.ubuntu.com/ubuntu"
+      - arches: [s390x, arm64, armhf, powerpc, ppc64el, riscv64]
+        uri: "http://ports.ubuntu.com/ubuntu-ports"
+    fallback: abort
+    geoip: true
