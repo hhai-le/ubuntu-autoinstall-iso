@@ -51,10 +51,10 @@ cd ${WORKINGDIR}
 7z -y x ${ISO_NAME}.iso -oiso
 mv ${WORKINGDIR}/iso/'[BOOT]' ${WORKINGDIR}/BOOT -v
 rm -f ${WORKINGDIR}/iso/boot/grub/grub.cfg -v
-cp -vr grub.cfg ${WORKINGDIR}/iso/boot/grub/grub.cfg -v
+cp -vr ${currentdir}/grub.cfg ${WORKINGDIR}/iso/boot/grub/grub.cfg -v
 mkdir ${WORKINGDIR}/iso/server -v
 touch ${WORKINGDIR}/iso/server/meta-data
-cp user-data.template ${WORKINGDIR}/iso/server/user-data -v
+cp ${currentdir}/user-data.template ${WORKINGDIR}/iso/server/user-data -v
 
 sed -i -e 's/KSIPADDRESS/'"$KSIP"'/g'  ${WORKINGDIR}/iso/server/user-data
 sed -i -e 's/KSGATEWAY/'"$KSGATEWAY"'/g'  ${WORKINGDIR}/iso/server/user-data
