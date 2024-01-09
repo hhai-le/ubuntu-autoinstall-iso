@@ -27,7 +27,7 @@ done
 
 if [[ -z $BASEISO || -z $KS || -z $KSIPADDRESS || -z $KSGATEWAY || -z $KSHOSTNAME || -z $KSMASK || -z $KSNAMESERVER ]]; then
  echo 'Usage: ubuntu_custom_iso.sh -i ubuntu-22.04.3-live-server-amd64.iso -u user-data.template \'
- echo '                            -a 192.168.86.133 -m 255.255.255.0 -g 192.168.86.1 -n ubuntu-auto-server -d 192.168.86.1'
+ echo '                            -a 192.168.86.133 -m 255.255.255.0 -g 192.168.86.1 -n ubuntu-auto-server -d 172.16.11.5'
  echo 'Options:'
  echo "  -i, --iso          Base ISO File"
  echo '  -u, --udata        User Data File'
@@ -60,7 +60,8 @@ sed -i -e 's/KSGATEWAY/'"$KSGATEWAY"'/g'  ${WORKINGDIR}/iso/server/user-data
 sed -i -e 's/KSHOSTNAME/'"$KSHOSTNAME"'/g'  ${WORKINGDIR}/iso/server/user-data
 sed -i -e 's/KSNAMESERVER/'"$KSNAMESERVER"'/g'  ${WORKINGDIR}/iso/server/user-data
 
-bash -c "cd ${WORKINGDIR}/iso && xorriso -as mkisofs -r \
+cd ${WORKINGDIR}/iso 
+xorriso -as mkisofs -r \
   -V \"${ISO_NAME}\" \
   -o ../${ISO_NAME}-auto.iso \
   --grub2-mbr ../BOOT/1-Boot-NoEmul.img \
@@ -75,7 +76,7 @@ bash -c "cd ${WORKINGDIR}/iso && xorriso -as mkisofs -r \
   -eltorito-alt-boot \
   -e '--interval:appended_partition_2:::' \
   -no-emul-boot \
-  ."
+  .
 
 mv -v ${WORKINGDIR}/${ISO_NAME}-auto.iso ${currentdir}
 rm -rf ${WORKINGDIR}

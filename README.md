@@ -17,7 +17,7 @@ sudo bash ubuntu_custom_iso.sh \
 -m 255.255.255.0 \
 -g 192.168.86.1 \
 -n ubuntu-autolab \
--d 192.168.86.1
+-d 172.16.11.5
 ```
 
 after run above script
