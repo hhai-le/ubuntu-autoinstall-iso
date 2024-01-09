@@ -41,8 +41,7 @@ if [[ -z $BASEISO || -z $KS || -z $KSIPADDRESS || -z $KSGATEWAY || -z $KSHOSTNAM
 fi
 
 KSPREFIX=$(ipcalc -nb 1.1.1.1 $KSMASK | sed -n '/Netmask/s/^.*=[ ]/\//p')
-
-KSIP=$(echo "$KSIPADDRESS""$KSMASK")
+KSIP=$(echo "$KSIPADDRESS\\$KSPREFIX")
 
 mkdir -p ${WORKINGDIR}/iso
 cp -vr ${BASEISO} ${WORKINGDIR} -v
