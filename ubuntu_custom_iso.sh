@@ -1,29 +1,14 @@
----
-# tasks file for unattended_ubuntu
-
-apt install p7zip-full mktemp xorriso -y
+#!/bin/bash
+apt install p7zip-full xorriso ipcalc -y
 
 # Script must be started as root to allow iso mounting
 if [ "$EUID" -ne 0 ] ; then echo "Please run as root or sudo" ;  exit 1 ;  fi
-currentdir="$(pwd)"
+currentdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 if [[ -z $WORKINGDIR ]]; then
   WORKINGDIR="$(mktemp -d -t isobuilder-XXXX)"
 fi
 
-if [[ -z $BASEISO || -z $KS || -z $KSIPADDRESS || -z $KSGATEWAY || -z $KSHOSTNAME || -z $KSVLAN || -z $KSNAMESERVER ]]; then
- echo 'Usage: ubuntu_custom_iso.sh -i ubuntu-22.04.3-live-server-amd64.iso -u user-data.template \'
- echo '                            -a "192.168.86.133/24" -g 192.168.86.1 -n ubuntu-auto-server -v 0 -d 192.168.86.1'
- echo 'Options:'
- echo "  -i, --iso          Base ISO File"
- echo '  -u, --udata        User Data File'
- echo '  -w, --working-dir  Working directory (Optional)'
- echo '  -a, --ip-address   Ubuntu IP Address and Netmask'
- echo '  -g, --gateway      Ubuntu Gateway'
- echo '  -n, --hostname     Ubuntu Hostname'
- echo '  -d, --dns          Ubuntu DNS Server'
- exit 1
-fi
 
 while [[ "$#" -gt 0 ]]; do
   case $1 in
@@ -31,6 +16,7 @@ while [[ "$#" -gt 0 ]]; do
     -u|--udata) KS="$2"; shift ;;
     -w|--working-dir) WORKINGDIR="$2"; shift ;;
     -a|--ip-address) KSIPADDRESS="$2"; shift ;;
+    -m|--netmask) KSMASK="$2"; shift ;;
     -g|--gateway) KSGATEWAY="$2"; shift ;;
     -n|--hostname) KSHOSTNAME="$2"; shift ;;
     -d|--dns) KSNAMESERVER="$2"; shift ;;
@@ -39,41 +25,58 @@ while [[ "$#" -gt 0 ]]; do
   shift
 done
 
-mkdir -p ${WORKINGDIR}/iso
-cp -vr ${BASEISO} ${WORKINGDIR}
-ISO_NAME=$(echo $BASEISO | sed "s/\.iso//")
-7z -y x ${ISO_NAME}.iso -oiso
-mv ${WORKINGDIR}/iso/'[BOOT]' ${WORKINGDIR}/BOOT
-rm -f ${WORKINGDIR}/iso/boot/grub/grub.cfg
-cp -vr grub.cfg ${WORKINGDIR}/iso/boot/grub/grub.cfg
-mkdir ${WORKINGDIR}/iso/server
-touch ${WORKINGDIR}/iso/server/meta-data
-cp user-data.template ${WORKINGDIR}/iso/server/user-data
+if [[ -z $BASEISO || -z $KS || -z $KSIPADDRESS || -z $KSGATEWAY || -z $KSHOSTNAME || -z $KSMASK || -z $KSNAMESERVER ]]; then
+ echo 'Usage: ubuntu_custom_iso.sh -i ubuntu-22.04.3-live-server-amd64.iso -u user-data.template \'
+ echo '                            -a 192.168.86.133 -m 255.255.255.0 -g 192.168.86.1 -n ubuntu-auto-server -d 192.168.86.1'
+ echo 'Options:'
+ echo "  -i, --iso          Base ISO File"
+ echo '  -u, --udata        User Data File'
+ echo '  -w, --working-dir  Working directory (Optional)'
+ echo '  -a, --ip-address   Ubuntu IP Address'
+ echo '  -m, --netmask      Ubuntu Netmask'
+ echo '  -g, --gateway      Ubuntu Gateway'
+ echo '  -n, --hostname     Ubuntu Hostname'
+ echo '  -d, --dns          Ubuntu DNS Server'
+ exit 1
+fi
 
-sed -i -e 's/KSIPADDRESS/'"$KSIPADDRESS"'/g'  ${WORKINGDIR}/iso/server/user-data
+KPREFIX=$(ipcalc -nb 1.1.1.1 $KSMASK | sed -n '/Netmask/s/^.*=[ ]/\//p')
+
+KIP=$(echo "$KSIPADDRESS""$KSMASK")
+
+mkdir -p ${WORKINGDIR}/iso
+cp -vr ${BASEISO} ${WORKINGDIR} -v
+ISO_NAME=$(echo $BASEISO | sed "s/\.iso//")
+cd ${WORKINGDIR}
+7z -y x ${ISO_NAME}.iso -oiso
+mv ${WORKINGDIR}/iso/'[BOOT]' ${WORKINGDIR}/BOOT -v
+rm -f ${WORKINGDIR}/iso/boot/grub/grub.cfg -v
+cp -vr grub.cfg ${WORKINGDIR}/iso/boot/grub/grub.cfg -v
+mkdir ${WORKINGDIR}/iso/server -v
+touch ${WORKINGDIR}/iso/server/meta-data
+cp user-data.template ${WORKINGDIR}/iso/server/user-data -v
+
+sed -i -e 's/KSIPADDRESS/'"$KSIP"'/g'  ${WORKINGDIR}/iso/server/user-data
 sed -i -e 's/KSGATEWAY/'"$KSGATEWAY"'/g'  ${WORKINGDIR}/iso/server/user-data
 sed -i -e 's/KSHOSTNAME/'"$KSHOSTNAME"'/g'  ${WORKINGDIR}/iso/server/user-data
 sed -i -e 's/KSNAMESERVER/'"$KSNAMESERVER"'/g'  ${WORKINGDIR}/iso/server/user-data
 
-- name: copy xorriso.sh file
-  copy:
-    src: files/xorriso.sh
-    dest: /tmp/xorriso.sh
-    mode: '0755'
+bash -c "cd ${WORKINGDIR}/iso && xorriso -as mkisofs -r \
+  -V \"${ISO_NAME}\" \
+  -o ../${ISO_NAME}-auto.iso \
+  --grub2-mbr ../BOOT/1-Boot-NoEmul.img \
+  -partition_offset 16 \
+  --mbr-force-bootable \
+  -append_partition 2 28732ac11ff8d211ba4b00a0c93ec93b ../BOOT/2-Boot-NoEmul.img \
+  -appended_part_as_gpt \
+  -iso_mbr_part_type a2a0d0ebe5b9334487c068b6b72699c7 \
+  -c '/boot.catalog' \
+  -b '/boot/grub/i386-pc/eltorito.img' \
+    -no-emul-boot -boot-load-size 4 -boot-info-table --grub2-boot-info \
+  -eltorito-alt-boot \
+  -e '--interval:appended_partition_2:::' \
+  -no-emul-boot \
+  ."
 
-- name: generate ISO
-  shell: "./xorriso.sh ${WORKINGDIR}/iso {{iso_autoinstall}} {{iso_autoinstall}}.iso"
-  args:
-    chdir: /tmp
-
-- name: remove old ISO
-  file:
-    path: "/iso/{{iso_autoinstall}}.iso"
-    state: absent
-
-- name: copy new ISO to NFS folder
-  copy:
-    src: "${WORKINGDIR}/{{iso_autoinstall}}.iso"
-    dest: /iso
-  become: true
-  become_method: sudo
+mv -v ${WORKINGDIR}/${ISO_NAME}-auto.iso ${currentdir}
+rm -rf ${WORKINGDIR}
