@@ -24,3 +24,14 @@ after run above script
 
 ![Alt text](image/image-1.png)
 
+Booting with this ISO
+
+![Alt text](image/image-2.png)
+
+![Alt text](image/image-3.png)
+
+![Alt text](image/image-4.png)
+
+![Alt text](image/image-5.png)
+
+![Alt text](image/image-6.png)
