@@ -26,7 +26,7 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 if [[ -z $BASEISO || -z $KS || -z $KSIPADDRESS || -z $KSGATEWAY || -z $KSHOSTNAME || -z $KSMASK || -z $KSNAMESERVER ]]; then
- echo 'Usage: ubuntu_custom_iso.sh -i ubuntu-22.04.3-live-server-amd64.iso -u user-data.template \'
+ echo 'Usage: ubuntu_custom_iso.sh -i ubuntu-22.04.3-live-server-amd64.iso -u user-data-temp \'
  echo '                            -a 192.168.86.133 -m 255.255.255.0 -g 192.168.86.1 -n ubuntu-auto-server -d 172.16.11.5'
  echo 'Options:'
  echo "  -i, --iso          Base ISO File"
@@ -41,7 +41,7 @@ if [[ -z $BASEISO || -z $KS || -z $KSIPADDRESS || -z $KSGATEWAY || -z $KSHOSTNAM
 fi
 
 KSPREFIX=$(ipcalc -nb 1.1.1.1 $KSMASK | sed -n '/Netmask/s/^.*=[ ]/\//p')
-KSIP=$(echo "$KSIPADDRESS\\$KSPREFIX")
+KSIP=$(echo "$KSIPADDRESS\\$KSPREFIX" | tr -d ' ')
 
 mkdir -p ${WORKINGDIR}/iso
 cp -vr ${BASEISO} ${WORKINGDIR} -v
@@ -53,15 +53,14 @@ rm -f ${WORKINGDIR}/iso/boot/grub/grub.cfg -v
 cp -vr ${currentdir}/grub.cfg ${WORKINGDIR}/iso/boot/grub/grub.cfg -v
 mkdir ${WORKINGDIR}/iso/server -v
 touch ${WORKINGDIR}/iso/server/meta-data
-cp ${currentdir}/user-data.template ${WORKINGDIR}/iso/server/user-data -v
+cp ${currentdir}/user-data-temp ${WORKINGDIR}/iso/server/user-data -v
 
 sed -i -e 's/KSIPADDRESS/'"$KSIP"'/g'  ${WORKINGDIR}/iso/server/user-data
 sed -i -e 's/KSGATEWAY/'"$KSGATEWAY"'/g'  ${WORKINGDIR}/iso/server/user-data
 sed -i -e 's/KSHOSTNAME/'"$KSHOSTNAME"'/g'  ${WORKINGDIR}/iso/server/user-data
 sed -i -e 's/KSNAMESERVER/'"$KSNAMESERVER"'/g'  ${WORKINGDIR}/iso/server/user-data
 
-cd ${WORKINGDIR}/iso 
-xorriso -as mkisofs -r \
+bash -c "cd ${WORKINGDIR}/iso && xorriso -as mkisofs -r \
   -V \"${ISO_NAME}\" \
   -o ../${ISO_NAME}-auto.iso \
   --grub2-mbr ../BOOT/1-Boot-NoEmul.img \
@@ -72,11 +71,14 @@ xorriso -as mkisofs -r \
   -iso_mbr_part_type a2a0d0ebe5b9334487c068b6b72699c7 \
   -c '/boot.catalog' \
   -b '/boot/grub/i386-pc/eltorito.img' \
-    -no-emul-boot -boot-load-size 4 -boot-info-table --grub2-boot-info \
+  -no-emul-boot \
+  -boot-load-size 4 \
+  -boot-info-table \
+  --grub2-boot-info \
   -eltorito-alt-boot \
   -e '--interval:appended_partition_2:::' \
   -no-emul-boot \
-  .
+  ."
 
 mv -v ${WORKINGDIR}/${ISO_NAME}-auto.iso ${currentdir}
 rm -rf ${WORKINGDIR}
