@@ -38,3 +38,4 @@ autoinstall:
         uri: "http://ports.ubuntu.com/ubuntu-ports"
     fallback: abort
     geoip: true
+  runcmd: shutdown -h now
