@@ -81,4 +81,4 @@ bash -c "cd ${WORKINGDIR}/iso && xorriso -as mkisofs -r \
   ."
 
 mv -v ${WORKINGDIR}/${ISO_NAME}-auto.iso ${currentdir}
-rm -rf ${WORKINGDIR}
+#rm -rf ${WORKINGDIR}

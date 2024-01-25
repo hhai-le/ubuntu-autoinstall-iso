@@ -31,11 +31,12 @@ autoinstall:
     preserve_sources_list: false
     mirror-selection:
       primary:
-      - country-mirror
-      - arches: [i386, amd64]
-        uri: "http://archive.ubuntu.com/ubuntu"
-      - arches: [s390x, arm64, armhf, powerpc, ppc64el, riscv64]
-        uri: "http://ports.ubuntu.com/ubuntu-ports"
+        - country-mirror
+        - arches: [i386, amd64]
+          uri: "http://archive.ubuntu.com/ubuntu"
+        - arches: [s390x, arm64, armhf, powerpc, ppc64el, riscv64]
+          uri: "http://ports.ubuntu.com/ubuntu-ports"
     fallback: abort
     geoip: true
-  runcmd: shutdown -h now
+  runcmd:
+    shutdown -h now
