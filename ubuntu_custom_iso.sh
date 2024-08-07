@@ -1,5 +1,24 @@
 #!/bin/bash
-apt install p7zip-full xorriso ipcalc -y
+package_install=""
+if ! command -v 7z &> /dev/null
+then
+    package_install+="p7zip-full "
+fi
+
+if ! command -v xorriso &> /dev/null
+then
+    package_install+="xorriso "
+fi
+
+if ! command -v ipcalc &> /dev/null
+then
+    package_install+="ipcalc "
+fi
+
+if [[ ${#package_install} -gt 0 ]]
+then
+  apt install ${package_install} -y
+fi
 
 # Script must be started as root to allow iso mounting
 if [ "$EUID" -ne 0 ] ; then echo "Please run as root or sudo" ;  exit 1 ;  fi
@@ -26,18 +45,18 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 if [[ -z $BASEISO || -z $KS || -z $KSIPADDRESS || -z $KSGATEWAY || -z $KSHOSTNAME || -z $KSMASK || -z $KSNAMESERVER ]]; then
- echo 'Usage: ubuntu_custom_iso.sh -i ubuntu-22.04.3-live-server-amd64.iso -u user-data-temp \'
- echo '                            -a 192.168.86.133 -m 255.255.255.0 -g 192.168.86.1 -n ubuntu-auto-server -d 172.16.11.5'
- echo 'Options:'
- echo "  -i, --iso          Base ISO File"
- echo '  -u, --udata        User Data File'
- echo '  -w, --working-dir  Working directory (Optional)'
- echo '  -a, --ip-address   Ubuntu IP Address'
- echo '  -m, --netmask      Ubuntu Netmask'
- echo '  -g, --gateway      Ubuntu Gateway'
- echo '  -n, --hostname     Ubuntu Hostname'
- echo '  -d, --dns          Ubuntu DNS Server'
- exit 1
+  echo 'Usage: ubuntu_custom_iso.sh -i ubuntu-22.04.3-live-server-amd64.iso -u user-data-temp \'
+  echo '                            -a 192.168.86.133 -m 255.255.255.0 -g 192.168.86.1 -n ubuntu-auto-server -d 172.16.11.5'
+  echo 'Options:'
+  echo "  -i, --iso          Base ISO File"
+  echo '  -u, --udata        User Data File'
+  echo '  -w, --working-dir  Working directory (Optional)'
+  echo '  -a, --ip-address   Ubuntu IP Address'
+  echo '  -m, --netmask      Ubuntu Netmask'
+  echo '  -g, --gateway      Ubuntu Gateway'
+  echo '  -n, --hostname     Ubuntu Hostname'
+  echo '  -d, --dns          Ubuntu DNS Server'
+  exit 1
 fi
 
 KSPREFIX=$(ipcalc -nb 1.1.1.1 $KSMASK | sed -n '/Netmask/s/^.*=[ ]/\//p')
@@ -53,7 +72,7 @@ rm -f ${WORKINGDIR}/iso/boot/grub/grub.cfg -v
 cp -vr ${currentdir}/grub.cfg ${WORKINGDIR}/iso/boot/grub/grub.cfg -v
 mkdir ${WORKINGDIR}/iso/server -v
 touch ${WORKINGDIR}/iso/server/meta-data
-cp ${currentdir}/user-data-temp ${WORKINGDIR}/iso/server/user-data -v
+cp ${currentdir}/${KS} ${WORKINGDIR}/iso/server/user-data -v
 
 sed -i -e 's/KSIPADDRESS/'"$KSIP"'/g'  ${WORKINGDIR}/iso/server/user-data
 sed -i -e 's/KSGATEWAY/'"$KSGATEWAY"'/g'  ${WORKINGDIR}/iso/server/user-data
@@ -62,7 +81,7 @@ sed -i -e 's/KSNAMESERVER/'"$KSNAMESERVER"'/g'  ${WORKINGDIR}/iso/server/user-da
 
 bash -c "cd ${WORKINGDIR}/iso && xorriso -as mkisofs -r \
   -V \"${ISO_NAME}\" \
-  -o ../${ISO_NAME}-auto.iso \
+  -o ../${KSHOSTNAME}.iso \
   --grub2-mbr ../BOOT/1-Boot-NoEmul.img \
   -partition_offset 16 \
   --mbr-force-bootable \
@@ -80,5 +99,5 @@ bash -c "cd ${WORKINGDIR}/iso && xorriso -as mkisofs -r \
   -no-emul-boot \
   ."
 
-mv -v ${WORKINGDIR}/${ISO_NAME}-auto.iso ${currentdir}
+mv -v ${WORKINGDIR}/${KSHOSTNAME}.iso ${currentdir}
 #rm -rf ${WORKINGDIR}
