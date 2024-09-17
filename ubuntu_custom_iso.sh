@@ -1,4 +1,8 @@
 #!/bin/bash
+# Script must be started as root to allow iso mounting
+if [ "$EUID" -ne 0 ] ; then echo "Please run as root or sudo" ;  exit 1 ;  fi
+currentdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
 package_install=""
 if ! command -v 7z &> /dev/null
 then
@@ -19,15 +23,6 @@ if [[ ${#package_install} -gt 0 ]]
 then
   apt install ${package_install} -y
 fi
-
-# Script must be started as root to allow iso mounting
-if [ "$EUID" -ne 0 ] ; then echo "Please run as root or sudo" ;  exit 1 ;  fi
-currentdir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-
-if [[ -z $WORKINGDIR ]]; then
-  WORKINGDIR="$(mktemp -d -t isobuilder-XXXX)"
-fi
-
 
 while [[ "$#" -gt 0 ]]; do
   case $1 in
@@ -57,6 +52,10 @@ if [[ -z $BASEISO || -z $KS || -z $KSIPADDRESS || -z $KSGATEWAY || -z $KSHOSTNAM
   echo '  -n, --hostname     Ubuntu Hostname'
   echo '  -d, --dns          Ubuntu DNS Server'
   exit 1
+fi
+
+if [[ -z $WORKINGDIR ]]; then
+  WORKINGDIR="$(mktemp -d -t isobuilder-XXXX)"
 fi
 
 KSPREFIX=$(ipcalc -nb 1.1.1.1 $KSMASK | sed -n '/Netmask/s/^.*=[ ]/\//p')
